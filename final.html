@@ -27,10 +27,25 @@
         <script src = "controls.js"></script>
         <script src = "cam.js"></script>
         <script src = "lit_material.js"></script>
-        <!-- <script src = "programs.js"></script> -->
         <script src = "light.js"></script>
         <script src = "node.js"></script>
         <script src = "render_mesh.js"></script>
+        <script>
+            //Helpers
+
+            // Easily creates a box for the renderer loop, with coords, scale, and material in one line
+            function add_box(parent, x, y, z, sx, sy, sz, material) {
+                const mesh = NormalMesh.box(gl, lit_program, 1, 1, 1, material);
+                const node = parent.add_child(mesh);
+                node.position.x = x;
+                node.position.y = y;
+                node.position.z = z;
+                node.scale.x = sx;
+                node.scale.y = sy;
+                node.scale.z = sz;
+                return node;
+            }
+        </script>
         <script>
             let canvas = document.getElementById( 'the-canvas' );
             /** @type {WebGLRenderingContext} */
@@ -213,19 +228,39 @@
             let sun = new Light( sun_dir.x, sun_dir.y, sun_dir.z, 1.0, 0.95, 0.85, 0 );
             let light1 = new Light( -9, -9, 0.0, 1.0, 0.2, 0.2, 1 );
 
+            // base floor
+            let floorMesh = NormalMesh.box(gl, lit_program, 1, 1, 1, grass);
+
             let mesh1_data = NormalMesh.uv_sphere( gl, lit_program, 1, 16, scale );
             let mesh2_data = NormalMesh.box( gl, lit_program, 1, 1, 1, scale );
 
             let sceneRoot = new Node();
 
+            let floorNode = sceneRoot.add_child(floorMesh);
+            floorNode.scale.x = 50;
+            floorNode.scale.y = 0.05;
+            floorNode.scale.z = 50;
+            floorNode.position.y = -0.53;
+
             let sphereNode = sceneRoot.add_child(mesh1_data);
             sphereNode.position.x = -1.5;
+            sphereNode.position.y = 1.0;
 
             let cubeNode = sceneRoot.add_child(mesh2_data);
             cubeNode.position.x = 1.5;
+            cubeNode.position.y = 0.0;
 
-            //let moonNode = sphereNode.add_child(mesh1_data);
-            //moonNode.position.x = 2.0; 
+            let moonNode = sphereNode.add_child(mesh1_data);
+            moonNode.scale.x = 0.5;
+            moonNode.scale.y = 0.5;
+            moonNode.scale.z = 0.5;
+            moonNode.position.x = -2.0; 
+            //moonNode.position.y = 1.0;
+
+            let newboxNode = add_box(sceneRoot, 4, 0, 0, 1, 1, 1, scale);
+            let newerboxNode = add_box(sceneRoot, 4, 1, 0, 1, 1, 1, scale);
+            let newestboxNode = add_box(sceneRoot, 5, 1, 0, 1, 1, 1, scale);
+
 
             let projection = Mat4.perspective_fovx( 0.125, 4 / 3, 0.125, 1024 );
             let current_program = lit_program;
@@ -277,6 +312,9 @@
                 'ArrowDown': function() { cam.add_pitch( ROTATION_SPEED_PER_FRAME ); },
             };
 
+            let moonOrbitAngle = 0;
+            const MOON_ORBIT_SPEED = 0.005;
+
             function update() {
                 let keys_down = keys.keys_down_list();
 
@@ -286,6 +324,19 @@
                    if( bound_function ) {
                        bound_function();
                    }
+                }
+
+                // Just testing some movement mechanics for parent/child stuff
+                if (sphereNode) {
+                    sphereNode.yaw += 0.0001;
+                }
+
+                if (moonNode) {
+                    moonOrbitAngle += MOON_ORBIT_SPEED;
+                    const orbitRadius = 3.0;
+                    moonNode.position.x = Math.cos(moonOrbitAngle) * orbitRadius;
+                    moonNode.position.z = Math.sin(moonOrbitAngle) * orbitRadius;
+                    moonNode.yaw += 0.001;
                 }
 
                 return;
