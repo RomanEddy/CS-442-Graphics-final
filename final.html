@@ -87,6 +87,8 @@
                 uniform vec3 light1_color;
                 uniform vec3 light2_loc;
                 uniform vec3 light2_color;
+                uniform vec3 light3_loc;
+                uniform vec3 light3_color;
 
                 const float light_attenuation_k = 0.01;
                 const float light_attenuation_l = 0.1;
@@ -170,7 +172,6 @@
                     vec3 vector_to_light1 = light1_loc - coords_tx;
                     vec3 light1_dir = normalize( vector_to_light1 );
                     float light1_atten = attenuation( vector_to_light1 );
-
                     vec3 light1_diffuse_color = diff_color(
                         normal_tx, light1_dir, light1_color, mat_diffuse);
                     vec3 light1_spec_color = spec_color(
@@ -181,13 +182,22 @@
                     vec3 vector_to_light2 = light2_loc - coords_tx;
                     vec3 light2_dir = normalize( vector_to_light2 );
                     float light2_atten = attenuation( vector_to_light2 );
-
                     vec3 light2_diffuse_color = diff_color(
                         normal_tx, light2_dir, light2_color, mat_diffuse);
                     vec3 light2_spec_color = spec_color(
                         normal_tx, light2_dir, eye_dir, light2_color, mat_specular, mat_shininess );
                     vec4 color_from_light2 = vec4(
                             ( light2_diffuse_color + light2_spec_color ) * light2_atten, 1.0 );
+
+                    vec3 vector_to_light3 = light3_loc - coords_tx;
+                    vec3 light3_dir = normalize( vector_to_light3 );
+                    float light3_atten = attenuation( vector_to_light3 );
+                    vec3 light3_diffuse_color = diff_color(
+                        normal_tx, light3_dir, light3_color, mat_diffuse);
+                    vec3 light3_spec_color = spec_color(
+                        normal_tx, light3_dir, eye_dir, light3_color, mat_specular, mat_shininess );
+                    vec4 color_from_light3 = vec4(
+                            ( light3_diffuse_color + light3_spec_color ) * light3_atten, 1.0 );
 
                     /* multiply color by 0 to remove it. try changing the 0 to a small number like .2
                     and the 1 to the complement of that number (1 - .2 = .8) to see how color blending works.*/
@@ -197,7 +207,8 @@
                             ambient_color +
                             color_from_sun +
                             color_from_light1 +
-                            color_from_light2
+                            color_from_light2 +
+                            color_from_light3
                         ) );
                     v_uv = uv;
                 }
@@ -348,8 +359,10 @@
 
             add_torch(sceneRoot, 8, 1, 2, torch)
             add_torch(sceneRoot, 10, 1, 2, torch);
+            let movingTorch = add_torch(cartRoot, 0, 0, 0, torch);
             let light1 = new Light( 8, 1.5, 2.425, 0.5, 0.375, 0.075, 1 );
             let light2 = new Light( 10, 1.5, 2.425, 0.5, 0.375, 0.075, 2 );
+            let light3 = new Light( 0, 0.5, 0, 0.25, 0.1875, 0.0375, 3 );
 
             let projection = Mat4.perspective_fovx( 0.125, 4 / 3, 0.125, 1024 );
             let current_program = lit_program;
@@ -382,6 +395,7 @@
                 sun.bind( gl, current_program, view );
                 light1.bind( gl, current_program, view );
                 light2.bind( gl, current_program, view );
+                light3.bind( gl, current_program, view );
 
                 // EXECUTE RENDER JOBS
                 for (const job of renderJobs) {
@@ -428,6 +442,8 @@
                 }
 
                 cartRoot.position.z += cartSpeed;
+                movingTorch.z += cartSpeed;
+                light3 = new Light( cartRoot.position.x, cartRoot.position.y + 0.5, cartRoot.position.z, 0.25, 0.1875, 0.0375, 3 );
 
                 // Make sure the direction flips when we reach an end
                 if (cartRoot.position.z > cartMaxZ) {
