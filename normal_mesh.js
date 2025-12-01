@@ -311,4 +311,113 @@ class NormalMesh {
 
         return new NormalMesh( gl, program, verts, indis, material, false );
     }
+
+    // Defaults to "x" as that is what the cart uses
+    static cylinder(gl, program, radius, length, segments, material, axis = "x") {
+        if (segments < 3) segments = 3;
+
+        let verts = [];
+        let indis = [];
+
+        const half = length / 2;
+
+        function push_vert(pos, color, uv, normal) {
+            verts.push(pos.x, pos.y, pos.z);
+            verts.push(color[0], color[1], color[2], color[3]);
+            verts.push(uv[0], uv[1]);
+            verts.push(normal.x, normal.y, normal.z);
+        }
+
+        //builds the curved ring
+        let ring = [];
+        for (let i = 0; i <= segments; i++) {
+            let a = (i / segments) * Math.PI * 2;
+            ring.push({ x: Math.cos(a) * radius, y: Math.sin(a) * radius });
+        }
+
+        //builds individual segments of the curve
+        let side_start = 0;
+        for (let i = 0; i <= segments; i++) {
+            let { x, y } = ring[i];
+            let normal = new Vec4(x, y, 0).norm();
+
+            let p1, p2;
+            if (axis === "z") {
+                p1 = new Vec4(x, y, -half);
+                p2 = new Vec4(x, y, half);
+            }
+            else if (axis === "x") {
+                p1 = new Vec4(-half, x, y);
+                p2 = new Vec4(half, x, y);
+                normal = new Vec4(0, x, y).norm();
+            }
+            else {
+                p1 = new Vec4(x, -half, y);
+                p2 = new Vec4(x, half, y);
+                normal = new Vec4(x, 0, y).norm();
+            }
+
+            push_vert(p1, [1, 1, 1, 1], [i / segments, 0], normal);
+            push_vert(p2, [1, 1, 1, 1], [i / segments, 1], normal);
+        }
+
+        for (let i = 0; i < segments; i++) {
+            let i0 = side_start + i * 2;
+            let i1 = i0 + 1;
+            let i2 = i0 + 2;
+            let i3 = i0 + 3;
+
+            indis.push(i0, i1, i3);
+            indis.push(i3, i2, i0);
+        }
+
+        //builds the two flat sides (circles)
+        function generate_cap(zSign) {
+            const center_index = verts.length / 12;
+            push_vert(
+                axis === "z" ? new Vec4(0, 0, zSign * half) :
+                axis === "x" ? new Vec4(zSign * half, 0, 0) :
+                            new Vec4(0, zSign * half, 0),
+                [1, 1, 1, 1],
+                [0.5, 0.5],
+                axis === "z" ? new Vec4(0, 0, zSign)
+                : axis === "x" ? new Vec4(zSign, 0, 0)
+                            : new Vec4(0, zSign, 0)
+            );
+
+            for (let i = 0; i <= segments; i++) {
+                let { x, y } = ring[i];
+                let pos;
+
+                if (axis === "z")
+                    pos = new Vec4(x, y, zSign * half);
+                else if (axis === "x")
+                    pos = new Vec4(zSign * half, x, y);
+                else
+                    pos = new Vec4(x, zSign * half, y);
+
+                const uvx = x / (2 * radius) + 0.5;
+                const uvy = y / (2 * radius) + 0.5;
+
+                push_vert(
+                    pos,
+                    [1, 1, 1, 1],
+                    [uvx, uvy],
+                    axis === "z" ? new Vec4(0, 0, zSign)
+                    : axis === "x" ? new Vec4(zSign, 0, 0)
+                                : new Vec4(0, zSign, 0)
+                );
+            }
+
+            let base = center_index;
+            for (let i = 1; i <= segments; i++) {
+                indis.push(base, base + i, base + i + 1);
+            }
+        }
+
+        generate_cap(+1); //front face
+        generate_cap(-1); //back face
+
+        return new NormalMesh(gl, program, verts, indis, material, false);
+    }
 }

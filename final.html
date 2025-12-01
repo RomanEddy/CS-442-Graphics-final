@@ -8,7 +8,7 @@
     </head>
 
     <body>
-        <canvas id = "the-canvas" width = "1440" height = "1080"></canvas>
+        <canvas id = "the-canvas" width = "800" height = "600"></canvas>
         <script src = "lib.js"></script>
         <script src = "vector.js"></script>
         <script src = "matrix.js"></script>
@@ -32,6 +32,21 @@
                 node.scale.x = sx;
                 node.scale.y = sy;
                 node.scale.z = sz;
+                return node;
+            }
+
+            // Easily creates a sideways cylinder for the cart wheels
+            function add_wheel(parent, x, y, z, radius, width, material, axis) {
+                const mesh = NormalMesh.cylinder(gl, lit_program, radius, width, 32, material, axis);
+                const node = parent.add_child(mesh);
+
+                node.scale.x = 0.1;
+                node.scale.y = 0.1;
+                node.scale.z = 0.1;
+                node.position.x = x;
+                node.position.y = y;
+                node.position.z = z;
+
                 return node;
             }
         </script>
@@ -189,22 +204,21 @@
 
             set_render_params( gl );
 
-            let last_update = performance.now();
-
             const DESIRED_TICK_RATE = 60;
             const DESIRED_MSPT = 1000.0 / DESIRED_TICK_RATE;
 
-            const ROTATION_SPEED = 0.2; // eighth turn per second
+            const ROTATION_SPEED = 0.6;
             const ROTATION_SPEED_PER_FRAME = ROTATION_SPEED / DESIRED_TICK_RATE;
 
-            const FLY_SPEED = 2.5;    // units per second
+            const FLY_SPEED = 10;    // units per second
             const FLY_SPEED_PER_FRAME = FLY_SPEED / DESIRED_TICK_RATE;
 
             let keys = Keys.start_listening();
             let cam = new Camera();
             cam.translate( 0, 0, -10 );
 
-
+            let metal = new LitMaterial( gl, 'tex/metal.png', gl.LINEAR, 0.25, 1, 2, 5 );
+            let scale = new LitMaterial( gl, 'tex/metal_scale.png', gl.LINEAR, 0.25, 1, 2, 4 );
             let grass = new LitMaterial( gl, 'tex/grass_lawn_seamless.png', gl.LINEAR, 0.2, 0.8, 0.05, 1.0 );
             let oak = new LitMaterial( gl, 'tex/oak_planks.png', gl.LINEAR, 0.25, 1, 2, 4 );
             let rail = new LitMaterial( gl, 'tex/stone_rail.png', gl.LINEAR, 0.25, 1, 2, 4 );
@@ -212,9 +226,7 @@
             // base floor
             let floorMesh = NormalMesh.box(gl, lit_program, 1, 1, 1, grass);
 
-            let mesh1_data = NormalMesh.uv_sphere( gl, lit_program, 1, 16, oak );
-            let mesh2_data = NormalMesh.box( gl, lit_program, 1, 1, 1, oak );
-
+            //let mesh1_data = NormalMesh.uv_sphere( gl, lit_program, 1, 16, oak );
             let sceneRoot = new Node();
 
             let floorNode = sceneRoot.add_child(floorMesh);
@@ -223,25 +235,10 @@
             floorNode.scale.z = 50;
             floorNode.position.y = -0.53;
 
-            /*let sphereNode = sceneRoot.add_child(mesh1_data);
-            sphereNode.position.x = -1.5;
-            sphereNode.position.y = 1.0;
-
-            let cubeNode = sceneRoot.add_child(mesh2_data);
-            cubeNode.position.x = 1.5;
-            cubeNode.position.y = 0.0;
-
-            let moonNode = sphereNode.add_child(mesh1_data);
-            moonNode.scale.x = 0.5;
-            moonNode.scale.y = 0.5;
-            moonNode.scale.z = 0.5;
-            moonNode.position.x = -2.0;
-            //moonNode.position.y = 1.0;*/
-
             // WORLDBUILDING
             // House box
             for (let x = 4; x <= 10; x++) {
-                for (let y = 0; y <= 3; y++) {
+                for (let y = 0; y <= 2; y++) {
                     for (let z = 3; z <= 8; z++) {
                         if ((x === 9 && y < 2 && z === 3) || ((z !== 3 && z !== 8) && (x !== 4 && x !== 10)))
                             continue;
@@ -251,13 +248,67 @@
             }
 
             // Rails
-            for (let z = 0; z <= 10; z++)
+            for (let z = 0; z <= 10; z++) {
                 add_box(sceneRoot, -1, -1, z, 1, 1, 1, rail);
-            add_box(sceneRoot, -1, 0, -1, 1, 1, 1, oak);
-            add_box(sceneRoot, -1, 0, 11, 1, 1, 1, oak);
+                add_box(sceneRoot, -1, 0, -1, 1, 1, 1, oak);
+                add_box(sceneRoot, -1, 0, 11, 1, 1, 1, oak);
+            }
+
+            //Cart
+            let cartRoot = sceneRoot.add_child(null);
+            cartRoot.position.x = -1;
+            cartRoot.position.z = 0.1;
+
+            const CART_WALL_WIDTH = 0.95;
+            const CART_WALL_HEIGHT = 0.8;
+            const CART_WALL_LENGTH = 1.2;
+            const CART_WALL_THICKNESS = 0.05;
+
+            let cartWallMesh = NormalMesh.box( gl, lit_program, 1, 1, 1, metal);
+
+            //Bottom
+            let bottomCartWallNode = cartRoot.add_child(cartWallMesh);
+            bottomCartWallNode.scale.x = CART_WALL_WIDTH;
+            bottomCartWallNode.scale.y = CART_WALL_THICKNESS;
+            bottomCartWallNode.scale.z = CART_WALL_LENGTH;
+            bottomCartWallNode.position.y = -0.4;
+
+            //Long sides
+            let leftCartWallNode = cartRoot.add_child(cartWallMesh);
+            leftCartWallNode.scale.x = CART_WALL_THICKNESS;
+            leftCartWallNode.scale.y = CART_WALL_HEIGHT;
+            leftCartWallNode.scale.z = CART_WALL_LENGTH;
+            leftCartWallNode.position.x = -CART_WALL_WIDTH/2;
+            
+            let rightCartWallNode = cartRoot.add_child(cartWallMesh);
+            rightCartWallNode.scale.x = CART_WALL_THICKNESS;
+            rightCartWallNode.scale.y = CART_WALL_HEIGHT;
+            rightCartWallNode.scale.z = CART_WALL_LENGTH;
+            rightCartWallNode.position.x = CART_WALL_WIDTH/2;
+
+            //Short sides
+            let backCartWallNode = cartRoot.add_child(cartWallMesh);
+            backCartWallNode.scale.x = CART_WALL_WIDTH;
+            backCartWallNode.scale.y = CART_WALL_HEIGHT;
+            backCartWallNode.scale.z = CART_WALL_THICKNESS;
+            backCartWallNode.position.z = -CART_WALL_LENGTH/2;
+
+            let frontCartWallNode = cartRoot.add_child(cartWallMesh);
+            frontCartWallNode.scale.x = CART_WALL_WIDTH;
+            frontCartWallNode.scale.y = CART_WALL_HEIGHT;
+            frontCartWallNode.scale.z = CART_WALL_THICKNESS;
+            frontCartWallNode.position.z = CART_WALL_LENGTH/2;
+
+            add_wheel(cartRoot, (CART_WALL_WIDTH/2) + (CART_WALL_THICKNESS/2), -0.4,  (CART_WALL_LENGTH/2) - (CART_WALL_THICKNESS*4), 1, 0.25, metal, "x");   //fr
+            add_wheel(cartRoot, (-CART_WALL_WIDTH/2) - (CART_WALL_THICKNESS/2), -0.4,  (CART_WALL_LENGTH/2) - (CART_WALL_THICKNESS*4), 1, 0.25, metal, "x");   //fl
+            add_wheel(cartRoot, (CART_WALL_WIDTH/2) + (CART_WALL_THICKNESS/2), -0.4, (-CART_WALL_LENGTH/2) + (CART_WALL_THICKNESS*4), 1, 0.25, metal, "x");   //br
+            add_wheel(cartRoot, (-CART_WALL_WIDTH/2) - (CART_WALL_THICKNESS/2), -0.4, (-CART_WALL_LENGTH/2) + (CART_WALL_THICKNESS*4), 1, 0.25, metal, "x");   //bl
 
             let projection = Mat4.perspective_fovx( 0.125, 4 / 3, 0.125, 1024 );
             let current_program = lit_program;
+
+            let last_update = performance.now();
+            let first_frame = performance.now();
 
             function render( now ) {
                 last_update = now;
@@ -276,7 +327,10 @@
                 set_uniform_vec3( gl, current_program, 'viewer_loc', cam.x, cam.y, cam.z );
 
                 // ADD LIGHTS
-                let sun_dir = ( new Vec4( -1.0, 0.0, 0.0, 0.0 ) ).norm();
+                let seconds = (now - first_frame) / 1000;
+                let dayCycleLengthSeconds = 60;
+                let angle = (seconds / dayCycleLengthSeconds) * Math.PI * 2.0;
+                let sun_dir = ( new Vec4( -Math.cos(angle), Math.sin(angle), 0.0, 0.0 ) ).norm();
                 let sun = new Light( sun_dir.x, sun_dir.y, sun_dir.z, 1.0, 0.95, 0.85, 0 );
                 let light1 = new Light( -9, -9, 0.0, 1.0, 0.2, 0.2, 1 );
 
@@ -296,23 +350,24 @@
             }
 
             const KEYMAP = {
-                'KeyW': function() { cam.move_in_direction( 0, 0, FLY_SPEED_PER_FRAME * 4 ); },
-                'KeyS': function() { cam.move_in_direction( 0, 0, -FLY_SPEED_PER_FRAME * 4 ); },
-                'KeyA': function() { cam.move_in_direction( -FLY_SPEED_PER_FRAME * 4, 0, 0 ); },
-                'KeyD': function() { cam.move_in_direction( FLY_SPEED_PER_FRAME * 4, 0, 0 ); },
-                'Space': function() { cam.translate( 0, FLY_SPEED_PER_FRAME * 4, 0 ); },
-                'KeyC': function() { cam.translate( 0, -FLY_SPEED_PER_FRAME * 4, 0 ); },
-                'ShiftLeft': function() { cam.translate( 0, -FLY_SPEED_PER_FRAME * 4, 0 ); },
+                'KeyW': function() { cam.move_in_direction( 0, 0, FLY_SPEED_PER_FRAME ); },
+                'KeyS': function() { cam.move_in_direction( 0, 0, -FLY_SPEED_PER_FRAME ); },
+                'KeyA': function() { cam.move_in_direction( -FLY_SPEED_PER_FRAME, 0, 0 ); },
+                'KeyD': function() { cam.move_in_direction( FLY_SPEED_PER_FRAME, 0, 0 ); },
+                'Space': function() { cam.translate( 0, FLY_SPEED_PER_FRAME, 0 ); },
+                'KeyC': function() { cam.translate( 0, -FLY_SPEED_PER_FRAME, 0 ); },
+                'ShiftLeft': function() { cam.translate( 0, -FLY_SPEED_PER_FRAME, 0 ); },
                 'KeyQ': function() { cam.add_roll( -ROTATION_SPEED_PER_FRAME ); },
                 'KeyE': function() { cam.add_roll( ROTATION_SPEED_PER_FRAME ); },
-                'ArrowLeft': function() { cam.add_yaw( -ROTATION_SPEED_PER_FRAME * 3 ); },
-                'ArrowRight': function() { cam.add_yaw( ROTATION_SPEED_PER_FRAME * 3 ); },
+                'ArrowLeft': function() { cam.add_yaw( -ROTATION_SPEED_PER_FRAME ); },
+                'ArrowRight': function() { cam.add_yaw( ROTATION_SPEED_PER_FRAME ); },
                 'ArrowUp': function() { cam.add_pitch( ROTATION_SPEED_PER_FRAME ); },
                 'ArrowDown': function() { cam.add_pitch( -ROTATION_SPEED_PER_FRAME ); },
             };
 
-            let moonOrbitAngle = 0;
-            const MOON_ORBIT_SPEED = 0.005;
+            let cartSpeed = 0.01;
+            const cartMinZ = 0.1;
+            const cartMaxZ = 10.9;
 
             function update() {
                 let keys_down = keys.keys_down_list();
@@ -325,18 +380,7 @@
                    }
                 }
 
-                // Just testing some movement mechanics for parent/child stuff
-                if (sphereNode) {
-                    sphereNode.yaw += 0.0001;
-                }
-
-                if (moonNode) {
-                    moonOrbitAngle += MOON_ORBIT_SPEED;
-                    const orbitRadius = 3.0;
-                    moonNode.position.x = Math.cos(moonOrbitAngle) * orbitRadius;
-                    moonNode.position.z = Math.sin(moonOrbitAngle) * orbitRadius;
-                    moonNode.yaw += 0.001;
-                }
+                
 
                 return;
             }
