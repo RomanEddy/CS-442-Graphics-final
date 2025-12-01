@@ -239,8 +239,8 @@
             let lit_program =
                 create_compile_and_link_program(
                     gl,
-                    /*PHONG_VERTEX_SHADER,*/ GOURAUD_VERTEX_SHADER,
-                    /*PHONG_FRAGMENT_SHADER,*/ GOURAUD_FRAGMENT_SHADER
+                    GOURAUD_VERTEX_SHADER,
+                    GOURAUD_FRAGMENT_SHADER
                 );
 
             gl.useProgram( lit_program );
@@ -273,7 +273,6 @@
             // base floor
             let floorMesh = NormalMesh.box(gl, lit_program, 1, 1, 1, grass);
 
-            //let mesh1_data = NormalMesh.uv_sphere( gl, lit_program, 1, 16, oak );
             let sceneRoot = new Node();
 
             let floorNode = sceneRoot.add_child(floorMesh);
