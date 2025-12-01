@@ -106,8 +106,12 @@ function set_vertex_attrib_to_buffer(
     let attr_loc = gl.getAttribLocation( program, attrib_name );
     
     if ( attr_loc == - 1 ) { 
+        //console.warn(`Attribute "${attrib_name}" not found in program. Skipping.`);
+        return;
+        /*
         throw new Error( 'either no attribute named "' + attrib_name + 
             '" in program or attribute name is reserved/built-in.' ) 
+            */
     } 
 
     let err = gl.getError()

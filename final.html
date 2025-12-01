@@ -17,6 +17,7 @@
         <script src = "cam.js"></script>
         <script src = "lit_material.js"></script>
         <script src = "light.js"></script>
+        <script src = "cube_map.js"></script>
         <script src = "node.js"></script>
         <script src = "render_mesh.js"></script>
         <script>
@@ -56,6 +57,41 @@
             let canvas = document.getElementById( 'the-canvas' );
             /** @type {WebGLRenderingContext} */
             let gl = canvas.getContext( 'webgl2' );
+            if (!gl) {console.error("EVERYTHING IS BROKEN!!!!!!!!!!!!!!");}
+
+            const SKYBOX_VERTEX_SHADER = 
+                `#version 300 es
+                precision mediump float;
+
+                in vec3 coordinates;
+
+                uniform mat4 projection;
+                uniform mat4 view;
+
+                out vec3 v_texCoords;
+
+                void main() {
+                    // Remove translation from the view matrix
+                    mat4 viewNoTrans = mat4(mat3(view));
+                    v_texCoords = coordinates;
+                    gl_Position = projection * viewNoTrans * vec4(coordinates, 1.0);
+                }
+            `;
+
+            const SKYBOX_FRAGMENT_SHADER = `#version 300 es
+                precision mediump float;
+
+                in vec3 v_texCoords;
+                out vec4 f_color;
+
+                uniform samplerCube skybox;
+
+                void main() {
+                    f_color = texture(skybox, v_texCoords);
+                }
+            `;
+
+            let skybox_program = create_compile_and_link_program(gl, SKYBOX_VERTEX_SHADER, SKYBOX_FRAGMENT_SHADER);
 
             const GOURAUD_VERTEX_SHADER =
             `   #version 300 es
@@ -225,6 +261,20 @@
             let oak = new LitMaterial( gl, 'tex/oak_planks.png', gl.LINEAR, 0.25, 1, 2, 4 );
             let rail = new LitMaterial( gl, 'tex/stone_rail.png', gl.LINEAR, 0.25, 1, 2, 4 );
 
+            let skybox = new CubeMap(gl, [
+                'tex/skybox_px.jpg',
+                'tex/skybox_nx.jpg',
+                'tex/skybox_py.jpg',
+                'tex/skybox_ny.jpg',
+                'tex/skybox_pz.jpg',
+                'tex/skybox_nz.jpg'
+            ]);
+
+            // skybox
+            let skyboxMesh = NormalMesh.box (gl, skybox_program, 1, 1, 1, metal);
+            let skyboxNode = new Node();
+            skyboxNode.add_child(skyboxMesh);
+
             // base floor
             let floorMesh = NormalMesh.box(gl, lit_program, 1, 1, 1, grass);
 
@@ -316,13 +366,27 @@
                 requestAnimationFrame( render );
                 gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
+                // SKYBOX
+                gl.depthFunc(gl.LEQUAL); // so skybox passes at far depth
+                gl.depthMask(false);
+                gl.useProgram(skybox_program);
+                set_uniform_matrix4(gl, skybox_program, 'projection', projection.data);
+                let view = cam.get_view_matrix();
+                set_uniform_matrix4(gl, skybox_program, 'view', view.data);
+                skybox.bind(gl, 0);
+                set_uniform_int(gl, skybox_program, 'skybox', 0);
+                skyboxMesh.render(gl);
+                gl.depthMask(true);
+                gl.depthFunc(gl.LESS); // restore default
+
                 // GENERATE RENDER JOBS
+                gl.useProgram(current_program);
                 const renderJobs = [];
                 const identityMatrix = new Mat4();
                 generate_render_jobs(identityMatrix, sceneRoot, renderJobs);
 
                 // UNIFORM SETUP
-                let view = cam.get_view_matrix();
+                //let view = cam.get_view_matrix();
                 set_uniform_matrix4( gl, current_program, 'projection', projection.data );
                 set_uniform_matrix4( gl, current_program, 'view', view.data );
                 set_uniform_vec3( gl, current_program, 'viewer_loc', cam.x, cam.y, cam.z );
