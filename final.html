@@ -23,8 +23,8 @@
             //Helpers
 
             // Easily creates a box for the renderer loop, with coords, scale, and material in one line
-            function add_box(parent, x, y, z, sx, sy, sz, material) {
-                const mesh = NormalMesh.box(gl, lit_program, 1, 1, 1, material);
+            function add_box(parent, x, y, z, sx, sy, sz, material, textureEachSide) {
+                const mesh = textureEachSide? NormalMesh.boxFullTexture(gl, lit_program, 1, 1, 1, material) : NormalMesh.box(gl, lit_program, 1, 1, 1, material);
                 const node = parent.add_child(mesh);
                 node.position.x = x;
                 node.position.y = y;
@@ -32,6 +32,9 @@
                 node.scale.x = sx;
                 node.scale.y = sy;
                 node.scale.z = sz;
+                console.log(node.roll);
+                if (textureEachSide)
+                    node.roll = Math.PI;
                 return node;
             }
 
@@ -264,6 +267,7 @@
             let oak = new LitMaterial( gl, 'tex/oak_planks.png', gl.LINEAR, 0.25, 0.75, 0, 2 );
             let rail = new LitMaterial( gl, 'tex/stone_rail.png', gl.LINEAR, 0.25, 1, 2, 4 );
             let torch = new LitMaterial( gl, 'tex/torch.png', gl.LINEAR, 0.25, 1, 2, 4 );
+            let crafting = new LitMaterial( gl, 'tex/crafting.png', gl.LINEAR, 0.25, 1, 2, 5 );
 
             // base floor
             let floorMesh = NormalMesh.box(gl, lit_program, 1, 1, 1, grass);
@@ -284,7 +288,7 @@
                     for (let z = 3; z <= 8; z++) {
                         if ((x === 9 && y < 2 && z === 3) || ((z !== 3 && z !== 8) && (x !== 6 && x !== 10)))
                             continue;
-                        add_box(sceneRoot, x, y, z, 1, 1, 1, oak);
+                        add_box(sceneRoot, x, y, z, 1, 1, 1, oak, false);
                     }
                 }
             }
@@ -295,16 +299,18 @@
                     let y = 3;
                     if (x === 8 && (z === 5 || z === 6))
                         y += 1;
-                    add_box(sceneRoot, x, y, z, 1, 1, 1, oak);
+                    add_box(sceneRoot, x, y, z, 1, 1, 1, oak, false);
                 }
             }
 
             // Rails
             for (let z = 0; z <= 10; z++)
-                add_box(sceneRoot, -1, -1, z, 1, 1, 1, rail);
+                add_box(sceneRoot, -1, -1, z, 1, 1, 1, rail, false);
 
-            add_box(sceneRoot, -1, 0, -1, 1, 1, 1, oak);
-            add_box(sceneRoot, -1, 0, 11, 1, 1, 1, oak);
+            add_box(sceneRoot, -1, 0, -1, 1, 1, 1, oak, false);
+            add_box(sceneRoot, -1, 0, 11, 1, 1, 1, oak, false);
+
+            add_box(sceneRoot, 7, 0, 7, 1, 1, 1, crafting, true);
 
             //Cart
             let cartRoot = sceneRoot.add_child(null);
