@@ -3,10 +3,10 @@ const VERTEX_STRIDE = 48;
 
 
 class NormalMesh {
-    /** 
+    /**
      * Creates a new mesh and loads it into video memory.
-     * 
-     * @param {WebGLRenderingContext} gl  
+     *
+     * @param {WebGLRenderingContext} gl
      * @param {number} program
      * @param {number[]} vertices
      * @param {number[]} indices
@@ -24,21 +24,21 @@ class NormalMesh {
     }
 
     set_vertex_attributes() {
-        set_vertex_attrib_to_buffer( 
-            gl, this.program, 
-            "coordinates", 
-            this.verts, 3, 
-            gl.FLOAT, false, VERTEX_STRIDE, 0 
+        set_vertex_attrib_to_buffer(
+            gl, this.program,
+            "coordinates",
+            this.verts, 3,
+            gl.FLOAT, false, VERTEX_STRIDE, 0
         );
 
-        set_vertex_attrib_to_buffer( 
-            gl, this.program, 
-            "color", 
-            this.verts, 4, 
+        set_vertex_attrib_to_buffer(
+            gl, this.program,
+            "color",
+            this.verts, 4,
             gl.FLOAT, false, VERTEX_STRIDE, 12
         );
 
-        set_vertex_attrib_to_buffer( 
+        set_vertex_attrib_to_buffer(
             gl, this.program,
             "uv",
             this.verts, 2,
@@ -46,17 +46,17 @@ class NormalMesh {
         );
 
         set_vertex_attrib_to_buffer(
-            gl, this.program, 
+            gl, this.program,
             "surf_normal",
-            this.verts, 3, 
+            this.verts, 3,
             gl.FLOAT, false, VERTEX_STRIDE, 36
         )
     }
-    
+
 
     /**
      * Create a box mesh with the given dimensions and colors. Creates normals.
-     * @param {WebGLRenderingContext} gl 
+     * @param {WebGLRenderingContext} gl
      */
 
     static box( gl, program, width, height, depth, material ) {
@@ -79,7 +79,7 @@ class NormalMesh {
             hwidth, -hheight, hdepth,   1.0, 1.0, 0.5, 1.0,     0.0, 1.0,   0.0, 0.0, 1.0,
             hwidth, hheight, hdepth,    0.5, 0.5, 1.0, 1.0,     0.0, 0.0,   0.0, 0.0, 1.0,
             -hwidth, hheight, hdepth,   0.0, 1.0, 1.0, 1.0,     1.0, 0.0,   0.0, 0.0, 1.0,
-            
+
             -hwidth, -hheight, hdepth,  1.0, 0.0, 1.0, 1.0,     0.0, 1.0,   -1.0, 0.0, 0.0,
             -hwidth, -hheight, -hdepth, 0.0, 1.0, 1.0, 1.0,     1.0, 1.0,   -1.0, 0.0, 0.0,
             -hwidth, hheight, -hdepth,  0.5, 0.5, 1.0, 1.0,     1.0, 0.0,   -1.0, 0.0, 0.0,
@@ -104,7 +104,126 @@ class NormalMesh {
             //12, 13, 14, 14, 15, 12,
             //16, 17, 18, 18, 19, 16,
             //20, 23, 22, 22, 21, 20,
-            
+
+            // counter-clockwise winding
+            2, 1, 0, 2, 0, 3,
+            6, 5, 4, 4, 7, 6,
+            10, 9, 8, 8, 11, 10,
+            12, 13, 14, 14, 15, 12,
+            16, 17, 18, 18, 19, 16,
+            22, 21, 20, 20, 23, 22,
+        ];
+
+        return new NormalMesh( gl, program, verts, indis, material, false );
+    }
+
+    static torch( gl, program, width, height, depth, material ) {
+        let hwidth = width / 2.0;
+        let hheight = height / 2.0;
+        let hdepth = depth / 2.0;
+
+        let verts = [
+            hwidth, -hheight, -hdepth,  1.0, 0.0, 1.0, 1.0,     1.0, 1.0,   0.0, 0.0, -1.0,
+            -hwidth, -hheight, -hdepth, 0.0, 1.0, 1.0, 1.0,     0.0, 1.0,   0.0, 0.0, -1.0,
+            -hwidth, hheight, -hdepth,  0.5, 0.5, 1.0, 1.0,     0.0, 0.0,   0.0, 0.0, -1.0,
+            hwidth, hheight, -hdepth,   1.0, 1.0, 0.5, 1.0,     1.0, 0.0,   0.0, 0.0, -1.0,
+
+            hwidth, -hheight, hdepth,   1.0, 0.0, 1.0, 1.0,     1.0, 1.0,   1.0, 0.0, 0.0,
+            hwidth, -hheight, -hdepth,  0.0, 1.0, 1.0, 1.0,     0.0, 1.0,   1.0, 0.0, 0.0,
+            hwidth, hheight, -hdepth,   0.5, 0.5, 1.0, 1.0,     0.0, 0.0,   1.0, 0.0, 0.0,
+            hwidth, hheight, hdepth,    1.0, 1.0, 0.5, 1.0,     1.0, 0.0,   1.0, 0.0, 0.0,
+
+            -hwidth, -hheight, hdepth,  1.0, 0.0, 1.0, 1.0,     1.0, 1.0,   0.0, 0.0, 1.0,
+            hwidth, -hheight, hdepth,   1.0, 1.0, 0.5, 1.0,     0.0, 1.0,   0.0, 0.0, 1.0,
+            hwidth, hheight, hdepth,    0.5, 0.5, 1.0, 1.0,     0.0, 0.0,   0.0, 0.0, 1.0,
+            -hwidth, hheight, hdepth,   0.0, 1.0, 1.0, 1.0,     1.0, 0.0,   0.0, 0.0, 1.0,
+
+            -hwidth, -hheight, hdepth,  1.0, 0.0, 1.0, 1.0,     0.0, 1.0,   -1.0, 0.0, 0.0,
+            -hwidth, -hheight, -hdepth, 0.0, 1.0, 1.0, 1.0,     1.0, 1.0,   -1.0, 0.0, 0.0,
+            -hwidth, hheight, -hdepth,  0.5, 0.5, 1.0, 1.0,     1.0, 0.0,   -1.0, 0.0, 0.0,
+            -hwidth, hheight, hdepth,   1.0, 1.0, 0.5, 1.0,     0.0, 0.0,   -1.0, 0.0, 0.0,
+
+            -hwidth, hheight, -hdepth,  1.0, 0.0, 0.0, 1.0,     0.0, 1.0,   0.0, 1.0, 0.0,
+            hwidth, hheight, -hdepth,   0.0, 1.0, 0.0, 1.0,     1.0, 1.0,   0.0, 1.0, 0.0,
+            hwidth, hheight, hdepth,    0.0, 0.0, 1.0, 1.0,     1.0, 1.0,   0.0, 1.0, 0.0,
+            -hwidth, hheight, hdepth,   1.0, 1.0, 0.0, 1.0,     0.0, 1.0,   0.0, 1.0, 0.0,
+
+            -hwidth, -hheight, -hdepth, 1.0, 0.0, 0.0, 1.0,     0.0, 1.0,   0.0, -1.0, 0.0,
+            hwidth, -hheight, -hdepth,  0.0, 1.0, 0.0, 1.0,     1.0, 1.0,   0.0, -1.0, 0.0,
+            hwidth, -hheight, hdepth,   0.0, 0.0, 1.0, 1.0,     1.0, 0.0,   0.0, -1.0, 0.0,
+            -hwidth, -hheight, hdepth,  1.0, 1.0, 0.0, 1.0,     0.0, 0.0,   0.0, -1.0, 0.0,
+        ];
+
+        let indis = [
+            // clockwise winding
+            //0, 3, 2, 2, 1, 0,
+            //4, 7, 6, 6, 5, 4,
+            //8, 11, 10, 10, 9, 8,
+            //12, 13, 14, 14, 15, 12,
+            //16, 17, 18, 18, 19, 16,
+            //20, 23, 22, 22, 21, 20,
+
+            // counter-clockwise winding
+            2, 1, 0, 2, 0, 3,
+            6, 5, 4, 4, 7, 6,
+            10, 9, 8, 8, 11, 10,
+            12, 13, 14, 14, 15, 12,
+            16, 17, 18, 18, 19, 16,
+            22, 21, 20, 20, 23, 22,
+        ];
+
+        return new NormalMesh( gl, program, verts, indis, material, false );
+    }
+
+    static boxFullTexture( gl, program, width, height, depth, material ) {
+        let hwidth = width / 2.0;
+        let hheight = height / 2.0;
+        let hdepth = depth / 2.0;
+
+        let verts = [
+            hwidth,-hheight,-hdepth,   1,0,1,1,   0.50,0.25,   0,0,-1,
+            -hwidth,-hheight,-hdepth,  0,1,1,1,   0.25,0.25,   0,0,-1,
+            -hwidth, hheight,-hdepth,  0.5,0.5,1,1, 0.25,0.50,   0,0,-1,
+            hwidth,  hheight,-hdepth,  1,1,0.5,1, 0.50,0.50,   0,0,-1,
+
+            hwidth,-hheight, hdepth,  1,0,1,1,    0.50,0.50,   1,0,0,
+            hwidth,-hheight,-hdepth,  0,1,1,1,    0.75,0.50,   1,0,0,
+            hwidth, hheight,-hdepth,  0.5,0.5,1,1, 0.75,0.75,   1,0,0,
+            hwidth, hheight, hdepth,  1,1,0.5,1,  0.5,0.75,   1,0,0,
+
+            -hwidth,-hheight,hdepth,  1,0,1,1,    0.75,0.25,   0,0,1,
+            hwidth, -hheight,hdepth,  1,1,0.5,1,  1.00,0.25,   0,0,1,
+            hwidth,  hheight,hdepth,  0.5,0.5,1,1, 1.00,0.50,   0,0,1,
+            -hwidth, hheight,hdepth,  0,1,1,1,    0.75,0.50,   0,0,1,
+
+            -hwidth,-hheight,hdepth,   1,0,1,1,    0.50,0.00,  -1,0,0,
+            -hwidth,-hheight,-hdepth,  0,1,1,1,   0.75,0.00,  -1,0,0,
+            -hwidth, hheight,-hdepth,  0.5,0.5,1,1, 0.75,0.25,  -1,0,0,
+            -hwidth, hheight, hdepth,  1,1,0.5,1, 0.50,0.25,  -1,0,0,
+
+            -hwidth,hheight,-hdepth,  1,0,0,1,    0.00,0.50,   0,1,0,
+            hwidth, hheight,-hdepth,  0,1,0,1,    0.25,0.50,   0,1,0,
+            hwidth, hheight, hdepth,  0,0,1,1,    0.25,0.25,   0,1,0,
+            -hwidth,hheight, hdepth,  1,1,0,1,    0.00,0.25,   0,1,0,
+
+            -hwidth,-hheight,-hdepth,  1,0,0,1,   0.50,0.25,   0,-1,0,
+            hwidth, -hheight,-hdepth,  0,1,0,1,   0.75,0.25,   0,-1,0,
+            hwidth, -hheight, hdepth,  0,0,1,1,   0.75,0.50,   0,-1,0,
+            -hwidth,-hheight, hdepth,  1,1,0,1,   0.50,0.50,   0,-1,0,
+        ];
+
+
+
+
+        let indis = [
+            // clockwise winding
+            //0, 3, 2, 2, 1, 0,
+            //4, 7, 6, 6, 5, 4,
+            //8, 11, 10, 10, 9, 8,
+            //12, 13, 14, 14, 15, 12,
+            //16, 17, 18, 18, 19, 16,
+            //20, 23, 22, 22, 21, 20,
+
             // counter-clockwise winding
             2, 1, 0, 2, 0, 3,
             6, 5, 4, 4, 7, 6,
@@ -119,12 +238,12 @@ class NormalMesh {
 
     /**
      * Create a flat platform in the xz plane.
-     * @param {WebGLRenderingContext} gl 
+     * @param {WebGLRenderingContext} gl
      */
     static platform( gl, program, width, depth, uv_min, uv_max, material ) {
         let hwidth = width / 2;
         let hdepth = depth / 2;
-        
+
         let verts = [
             -hwidth, 0, -hdepth,  1.0, 1.0, 1.0, 1.0,     uv_min, uv_max,   0.0, 1.0, 0.0,
             hwidth, 0, -hdepth,   1.0, 1.0, 1.0, 1.0,     uv_max, uv_max,   0.0, 1.0, 0.0,
@@ -139,10 +258,10 @@ class NormalMesh {
 
     /**
      * Load a mesh from a heightmap.
-     * @param {WebGLRenderingContext} gl 
+     * @param {WebGLRenderingContext} gl
      * @param {WebGLProgram} program
      * @param {number][][]} map
-     * @param {number} min 
+     * @param {number} min
      * @param {number} max
      */
     static from_heightmap( gl, program, map, min, max, material ) {
@@ -207,7 +326,7 @@ class NormalMesh {
                 push_vert( verts, v_bl, 0, 0, normal_t2 );
                 push_vert( verts, v_tr, 1, 1, normal_t2 );
 
-                indis.push( 
+                indis.push(
                     indi_start,
                     indi_start + 1,
                     indi_start + 2,
@@ -222,13 +341,13 @@ class NormalMesh {
     }
 
     /**
-     * Render the mesh. Does NOT preserve array/index buffer, program, or texture bindings! 
-     * 
-     * @param {WebGLRenderingContext} gl 
+     * Render the mesh. Does NOT preserve array/index buffer, program, or texture bindings!
+     *
+     * @param {WebGLRenderingContext} gl
      */
     render( gl ) {
         // gl.enable( gl.CULL_FACE );
-        
+
         gl.useProgram( this.program );
         this.set_vertex_attributes();
         gl.bindBuffer( gl.ARRAY_BUFFER, this.verts );
@@ -245,12 +364,12 @@ class NormalMesh {
 
     /**
      * Create a UV sphere.
-     * @param {*} gl 
-     * @param {*} program 
-     * @param {*} radius 
+     * @param {*} gl
+     * @param {*} program
+     * @param {*} radius
      * @param {*} subdivs the number of subdivisions, both vertically and radially
-     * @param {*} material 
-     * @returns 
+     * @param {*} material
+     * @returns
      */
     static uv_sphere( gl, program, radius, subdivs, material ) {
         if( subdivs < 3 ) {
@@ -267,27 +386,27 @@ class NormalMesh {
             let radius_scale_for_layer = Math.sin( 2 * Math.PI * y_turns );
 
             for( let subdiv = 0; subdiv <= subdivs; subdiv++ ) {
-                let turns = subdiv / subdivs; 
+                let turns = subdiv / subdivs;
                 let rads = 2 * Math.PI * turns;
-    
+
                 let x = Math.cos( rads ) / 2 * radius_scale_for_layer;
                 let z = Math.sin( rads ) / 2 * radius_scale_for_layer;
 
                 let point_norm = new Vec4( x, y, z, 0.0 ).norm();
                 let scaled_point = point_norm.scaled( radius );
-                
+
                 // coordinates
                 verts.push( scaled_point.x, scaled_point.y, scaled_point.z );
 
                 // console.log( layer, subdiv, scaled_point.x, scaled_point.y, scaled_point.z );
-                
+
                 // color (we're making it white for simplicity)
                 verts.push( 1, 1, 1, 1 );
 
                 // uvs
                 verts.push( subdiv / subdivs, layer / subdivs );
-                
-                // normal vector. make sure you understand why the normalized coordinate is 
+
+                // normal vector. make sure you understand why the normalized coordinate is
                 // equivalent to the normal vector for the sphere.
                 verts.push( point_norm.x, point_norm.y, point_norm.z );
             }

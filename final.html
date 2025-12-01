@@ -24,8 +24,8 @@
             //Helpers
 
             // Easily creates a box for the renderer loop, with coords, scale, and material in one line
-            function add_box(parent, x, y, z, sx, sy, sz, material) {
-                const mesh = NormalMesh.box(gl, lit_program, 1, 1, 1, material);
+            function add_box(parent, x, y, z, sx, sy, sz, material, textureEachSide) {
+                const mesh = textureEachSide? NormalMesh.boxFullTexture(gl, lit_program, 1, 1, 1, material) : NormalMesh.box(gl, lit_program, 1, 1, 1, material);
                 const node = parent.add_child(mesh);
                 node.position.x = x;
                 node.position.y = y;
@@ -33,6 +33,9 @@
                 node.scale.x = sx;
                 node.scale.y = sy;
                 node.scale.z = sz;
+                console.log(node.roll);
+                if (textureEachSide)
+                    node.roll = Math.PI;
                 return node;
             }
 
@@ -50,6 +53,19 @@
                 node.position.y = y;
                 node.position.z = z;
 
+                return node;
+            }
+
+            function add_torch(parent, x, y, z, material) {
+                const mesh = NormalMesh.torch(gl, lit_program, 1, 1, 1, material);
+                const node = parent.add_child(mesh);
+                node.position.x = x;
+                node.position.y = y;
+                node.position.z = z + .45;
+                node.scale.x = .1;
+                node.scale.y = .5;
+                node.scale.z = .1;
+                node.pitch = 0.45;
                 return node;
             }
         </script>
@@ -108,6 +124,10 @@
 
                 uniform vec3 light1_loc;
                 uniform vec3 light1_color;
+                uniform vec3 light2_loc;
+                uniform vec3 light2_color;
+                uniform vec3 light3_loc;
+                uniform vec3 light3_color;
 
                 const float light_attenuation_k = 0.01;
                 const float light_attenuation_l = 0.1;
@@ -160,14 +180,14 @@
                 }
 
                 float attenuation( vec3 vector_to_light ) {
-                    float light1_dist = length( vector_to_light );
-                    float light1_atten = 1.0 / (
+                    float light_dist = length( vector_to_light );
+                    float light_atten = 1.0 / (
                         light_attenuation_k +
-                        light_attenuation_l * light1_dist +
-                        light_attenuation_q * light1_dist * light1_dist
+                        light_attenuation_l * light_dist +
+                        light_attenuation_q * light_dist * light_dist
                     );
 
-                    return light1_atten;
+                    return light_atten;
                 }
 
                 void main( void ) {
@@ -191,13 +211,32 @@
                     vec3 vector_to_light1 = light1_loc - coords_tx;
                     vec3 light1_dir = normalize( vector_to_light1 );
                     float light1_atten = attenuation( vector_to_light1 );
-
                     vec3 light1_diffuse_color = diff_color(
                         normal_tx, light1_dir, light1_color, mat_diffuse);
                     vec3 light1_spec_color = spec_color(
                         normal_tx, light1_dir, eye_dir, light1_color, mat_specular, mat_shininess );
                     vec4 color_from_light1 = vec4(
                             ( light1_diffuse_color + light1_spec_color ) * light1_atten, 1.0 );
+
+                    vec3 vector_to_light2 = light2_loc - coords_tx;
+                    vec3 light2_dir = normalize( vector_to_light2 );
+                    float light2_atten = attenuation( vector_to_light2 );
+                    vec3 light2_diffuse_color = diff_color(
+                        normal_tx, light2_dir, light2_color, mat_diffuse);
+                    vec3 light2_spec_color = spec_color(
+                        normal_tx, light2_dir, eye_dir, light2_color, mat_specular, mat_shininess );
+                    vec4 color_from_light2 = vec4(
+                            ( light2_diffuse_color + light2_spec_color ) * light2_atten, 1.0 );
+
+                    vec3 vector_to_light3 = light3_loc - coords_tx;
+                    vec3 light3_dir = normalize( vector_to_light3 );
+                    float light3_atten = attenuation( vector_to_light3 );
+                    vec3 light3_diffuse_color = diff_color(
+                        normal_tx, light3_dir, light3_color, mat_diffuse);
+                    vec3 light3_spec_color = spec_color(
+                        normal_tx, light3_dir, eye_dir, light3_color, mat_specular, mat_shininess );
+                    vec4 color_from_light3 = vec4(
+                            ( light3_diffuse_color + light3_spec_color ) * light3_atten, 1.0 );
 
                     /* multiply color by 0 to remove it. try changing the 0 to a small number like .2
                     and the 1 to the complement of that number (1 - .2 = .8) to see how color blending works.*/
@@ -206,7 +245,9 @@
                         ( 1.0 * (
                             ambient_color +
                             color_from_sun +
-                            color_from_light1
+                            color_from_light1 +
+                            color_from_light2 +
+                            color_from_light3
                         ) );
                     v_uv = uv;
                 }
@@ -234,8 +275,8 @@
             let lit_program =
                 create_compile_and_link_program(
                     gl,
-                    /*PHONG_VERTEX_SHADER,*/ GOURAUD_VERTEX_SHADER,
-                    /*PHONG_FRAGMENT_SHADER,*/ GOURAUD_FRAGMENT_SHADER
+                    GOURAUD_VERTEX_SHADER,
+                    GOURAUD_FRAGMENT_SHADER
                 );
 
             gl.useProgram( lit_program );
@@ -255,11 +296,16 @@
             let cam = new Camera();
             cam.translate( 0, 0, -10 );
 
-            let metal = new LitMaterial( gl, 'tex/metal.png', gl.LINEAR, 0.25, 1, 2, 5 );
-            let scale = new LitMaterial( gl, 'tex/metal_scale.png', gl.LINEAR, 0.25, 1, 2, 4 );
+            let minecart = new LitMaterial( gl, 'tex/minecart_side.png', gl.LINEAR, 0.25, 1, 2, 5 );
+            let minecart_short = new LitMaterial( gl, 'tex/minecart_side2.png', gl.LINEAR, 0.25, 1, 2, 5 );
+            let metal = new LitMaterial( gl, 'tex/metal.png', gl.LINEAR, 0.25, 1, 2, 4 );
             let grass = new LitMaterial( gl, 'tex/grass_lawn_seamless.png', gl.LINEAR, 0.2, 0.8, 0.05, 1.0 );
-            let oak = new LitMaterial( gl, 'tex/oak_planks.png', gl.LINEAR, 0.25, 1, 2, 4 );
+            let oak = new LitMaterial( gl, 'tex/oak_planks.png', gl.LINEAR, 0.25, 0.75, 0, 2 );
             let rail = new LitMaterial( gl, 'tex/stone_rail.png', gl.LINEAR, 0.25, 1, 2, 4 );
+
+            let torch = new LitMaterial( gl, 'tex/torch.png', gl.LINEAR, 0.25, 1, 2, 4 );
+            let crafting = new LitMaterial( gl, 'tex/crafting.png', gl.LINEAR, 0.25, 1, 2, 5 );
+            let chest = new LitMaterial( gl, 'tex/chest.png', gl.LINEAR, 0.25, 1, 2, 5 );
 
             let skybox = new CubeMap(gl, [
                 'tex/skybox_px.jpg',
@@ -278,7 +324,6 @@
             // base floor
             let floorMesh = NormalMesh.box(gl, lit_program, 1, 1, 1, grass);
 
-            //let mesh1_data = NormalMesh.uv_sphere( gl, lit_program, 1, 16, oak );
             let sceneRoot = new Node();
 
             let floorNode = sceneRoot.add_child(floorMesh);
@@ -289,22 +334,36 @@
 
             // WORLDBUILDING
             // House box
-            for (let x = 4; x <= 10; x++) {
+            for (let x = 6; x <= 10; x++) {
                 for (let y = 0; y <= 2; y++) {
                     for (let z = 3; z <= 8; z++) {
-                        if ((x === 9 && y < 2 && z === 3) || ((z !== 3 && z !== 8) && (x !== 4 && x !== 10)))
+                        if ((x === 9 && y < 2 && z === 3) || ((z !== 3 && z !== 8) && (x !== 6 && x !== 10)))
                             continue;
-                        add_box(sceneRoot, x, y, z, 1, 1, 1, oak);
+                        add_box(sceneRoot, x, y, z, 1, 1, 1, oak, false);
                     }
                 }
             }
 
-            // Rails
-            for (let z = 0; z <= 10; z++) {
-                add_box(sceneRoot, -1, -1, z, 1, 1, 1, rail);
-                add_box(sceneRoot, -1, 0, -1, 1, 1, 1, oak);
-                add_box(sceneRoot, -1, 0, 11, 1, 1, 1, oak);
+            // House roof
+            for (let z = 4; z <= 7; z++) {
+                for (let x = 7; x <= 9; x++) {
+                    let y = 3;
+                    if (x === 8 && (z === 5 || z === 6))
+                        y += 1;
+                    add_box(sceneRoot, x, y, z, 1, 1, 1, oak, false);
+                }
             }
+
+            // House Interior
+            add_box(sceneRoot, 7, 0, 7, 1, 1, 1, crafting, true);
+            add_box(sceneRoot, 8, 0, 7, 1, 1, 1, chest, true);
+
+            // Rails
+            for (let z = 0; z <= 10; z++)
+                add_box(sceneRoot, -1, -1, z, 1, 1, 1, rail, false);
+
+            add_box(sceneRoot, -1, 0, -1, 1, 1, 1, oak, false);
+            add_box(sceneRoot, -1, 0, 11, 1, 1, 1, oak, false);
 
             //Cart
             let cartRoot = sceneRoot.add_child(null);
@@ -316,7 +375,8 @@
             const CART_WALL_LENGTH = 1.2;
             const CART_WALL_THICKNESS = 0.05;
 
-            let cartWallMesh = NormalMesh.box( gl, lit_program, 1, 1, 1, metal);
+            let cartWallMesh = NormalMesh.box( gl, lit_program, 1, 1, 1, minecart);
+            let shortCartWallMesh = NormalMesh.box( gl, lit_program, 1, 1, 1, minecart_short);
 
             //Bottom
             let bottomCartWallNode = cartRoot.add_child(cartWallMesh);
@@ -331,7 +391,7 @@
             leftCartWallNode.scale.y = CART_WALL_HEIGHT;
             leftCartWallNode.scale.z = CART_WALL_LENGTH;
             leftCartWallNode.position.x = -CART_WALL_WIDTH/2;
-            
+
             let rightCartWallNode = cartRoot.add_child(cartWallMesh);
             rightCartWallNode.scale.x = CART_WALL_THICKNESS;
             rightCartWallNode.scale.y = CART_WALL_HEIGHT;
@@ -339,13 +399,13 @@
             rightCartWallNode.position.x = CART_WALL_WIDTH/2;
 
             //Short sides
-            let backCartWallNode = cartRoot.add_child(cartWallMesh);
+            let backCartWallNode = cartRoot.add_child(shortCartWallMesh);
             backCartWallNode.scale.x = CART_WALL_WIDTH;
             backCartWallNode.scale.y = CART_WALL_HEIGHT;
             backCartWallNode.scale.z = CART_WALL_THICKNESS;
             backCartWallNode.position.z = -CART_WALL_LENGTH/2;
 
-            let frontCartWallNode = cartRoot.add_child(cartWallMesh);
+            let frontCartWallNode = cartRoot.add_child(shortCartWallMesh);
             frontCartWallNode.scale.x = CART_WALL_WIDTH;
             frontCartWallNode.scale.y = CART_WALL_HEIGHT;
             frontCartWallNode.scale.z = CART_WALL_THICKNESS;
@@ -355,6 +415,13 @@
             add_wheel(cartRoot, (-CART_WALL_WIDTH/2) - (CART_WALL_THICKNESS/2), -0.4,  (CART_WALL_LENGTH/2) - (CART_WALL_THICKNESS*4), 1, 0.25, metal, "x");   //fl
             add_wheel(cartRoot, (CART_WALL_WIDTH/2) + (CART_WALL_THICKNESS/2), -0.4, (-CART_WALL_LENGTH/2) + (CART_WALL_THICKNESS*4), 1, 0.25, metal, "x");   //br
             add_wheel(cartRoot, (-CART_WALL_WIDTH/2) - (CART_WALL_THICKNESS/2), -0.4, (-CART_WALL_LENGTH/2) + (CART_WALL_THICKNESS*4), 1, 0.25, metal, "x");   //bl
+
+            add_torch(sceneRoot, 8, 1, 2, torch)
+            add_torch(sceneRoot, 10, 1, 2, torch);
+            let movingTorch = add_torch(cartRoot, 0, 0, 0, torch);
+            let light1 = new Light( 8, 1.5, 2.425, 0.5, 0.375, 0.075, 1 );
+            let light2 = new Light( 10, 1.5, 2.425, 0.5, 0.375, 0.075, 2 );
+            let light3 = new Light( 0, 0.5, 0, 0.25, 0.1875, 0.0375, 3 );
 
             let projection = Mat4.perspective_fovx( 0.125, 4 / 3, 0.125, 1024 );
             let current_program = lit_program;
@@ -391,16 +458,19 @@
                 set_uniform_matrix4( gl, current_program, 'view', view.data );
                 set_uniform_vec3( gl, current_program, 'viewer_loc', cam.x, cam.y, cam.z );
 
-                // ADD LIGHTS
+                // ADD SUN & LIGHTS
                 let seconds = (now - first_frame) / 1000;
-                let dayCycleLengthSeconds = 60;
+                let dayCycleLengthSeconds = 30;
                 let angle = (seconds / dayCycleLengthSeconds) * Math.PI * 2.0;
                 let sun_dir = ( new Vec4( -Math.cos(angle), Math.sin(angle), 0.0, 0.0 ) ).norm();
                 let sun = new Light( sun_dir.x, sun_dir.y, sun_dir.z, 1.0, 0.95, 0.85, 0 );
-                let light1 = new Light( -9, -9, 0.0, 1.0, 0.2, 0.2, 1 );
+                gl.clearColor(.4 * sun_dir.y, .65 * sun_dir.y, 1 * sun_dir.y, 1);
+                //gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
                 sun.bind( gl, current_program, view );
                 light1.bind( gl, current_program, view );
+                light2.bind( gl, current_program, view );
+                light3.bind( gl, current_program, view );
 
                 // EXECUTE RENDER JOBS
                 for (const job of renderJobs) {
@@ -447,6 +517,8 @@
                 }
 
                 cartRoot.position.z += cartSpeed;
+                movingTorch.z += cartSpeed;
+                light3 = new Light( cartRoot.position.x, cartRoot.position.y + 0.5, cartRoot.position.z, 0.25, 0.1875, 0.0375, 3 );
 
                 // Make sure the direction flips when we reach an end
                 if (cartRoot.position.z > cartMaxZ) {
