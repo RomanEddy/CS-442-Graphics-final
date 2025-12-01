@@ -2,24 +2,13 @@
 <html>
     <head>
         <style>
-            body { 
-            }
-            canvas {
-                width: 800;
-                height: 600;
-            }
-            #render-button {
-                width: 180px;
-                height: 50px;
-                font-size: 24pt;
-            }
             #the-canvas { border: 1px solid darkblue; }
             #user-matrix input { width: 64px; font-size: 24px; }
         </style>
     </head>
 
     <body>
-        <canvas id = "the-canvas" width = "800" height = "600"></canvas>
+        <canvas id = "the-canvas" width = "1440" height = "1080"></canvas>
         <script src = "lib.js"></script>
         <script src = "vector.js"></script>
         <script src = "matrix.js"></script>
@@ -51,7 +40,7 @@
             /** @type {WebGLRenderingContext} */
             let gl = canvas.getContext( 'webgl2' );
 
-            const GOURAUD_VERTEX_SHADER = 
+            const GOURAUD_VERTEX_SHADER =
             `   #version 300 es
                 precision mediump float;
 
@@ -63,7 +52,7 @@
 
                 uniform vec3 sun_dir;
                 uniform vec3 sun_color;
-                
+
                 uniform vec3 light1_loc;
                 uniform vec3 light1_color;
 
@@ -84,20 +73,20 @@
                 out vec4 v_color;
                 out vec2 v_uv;
 
-                vec3 diff_color( 
-                    vec3 normal, 
+                vec3 diff_color(
+                    vec3 normal,
                     vec3 light_dir,
-                    vec3 light_color, 
-                    float mat_diffuse 
+                    vec3 light_color,
+                    float mat_diffuse
                 ) {
                     return mat_diffuse * light_color * max( dot( normal, light_dir ), 0.0 );
                 }
 
-                vec3 spec_color( 
-                    vec3 normal, 
+                vec3 spec_color(
+                    vec3 normal,
                     vec3 light_dir,
-                    vec3 eye_dir, 
-                    vec3 light_color, 
+                    vec3 eye_dir,
+                    vec3 light_color,
                     float mat_specular,
                     float mat_shiniess
                 ) {
@@ -107,20 +96,20 @@
                         return vec3( 0.0, 0.0, 0.0 );
                     }
 
-                    vec3 light_reflection = 
+                    vec3 light_reflection =
                         2.0 * cos_light_surf_normal * normal - light_dir;
 
-                    return 
-                        pow( 
+                    return
+                        pow(
                             max( dot( light_reflection, normalize( eye_dir ) ), 0.0  ),
-                            mat_shininess 
+                            mat_shininess
                         ) * light_color * mat_specular;
                 }
 
                 float attenuation( vec3 vector_to_light ) {
                     float light1_dist = length( vector_to_light );
-                    float light1_atten = 1.0 / ( 
-                        light_attenuation_k + 
+                    float light1_atten = 1.0 / (
+                        light_attenuation_k +
                         light_attenuation_l * light1_dist +
                         light_attenuation_q * light1_dist * light1_dist
                     );
@@ -137,10 +126,10 @@
 
                     vec4 ambient_color = vec4( mat_ambient, mat_ambient, mat_ambient, 1.0 );
 
-                    // vec3 sun_dir_tx = 
+                    // vec3 sun_dir_tx =
                     float cos_sun_dir_surf_normal = dot( sun_dir, normal_tx );
                     vec3 sun_diffuse_color = diff_color( normal_tx, sun_dir, sun_color, mat_diffuse );
-                    
+
                     vec3 sun_spec_color =
                         spec_color( normal_tx, sun_dir, eye_dir, sun_color, mat_specular, mat_shininess );
 
@@ -149,18 +138,18 @@
                     vec3 vector_to_light1 = light1_loc - coords_tx;
                     vec3 light1_dir = normalize( vector_to_light1 );
                     float light1_atten = attenuation( vector_to_light1 );
-                
-                    vec3 light1_diffuse_color = diff_color( 
+
+                    vec3 light1_diffuse_color = diff_color(
                         normal_tx, light1_dir, light1_color, mat_diffuse);
-                    vec3 light1_spec_color = spec_color( 
+                    vec3 light1_spec_color = spec_color(
                         normal_tx, light1_dir, eye_dir, light1_color, mat_specular, mat_shininess );
                     vec4 color_from_light1 = vec4(
                             ( light1_diffuse_color + light1_spec_color ) * light1_atten, 1.0 );
 
                     /* multiply color by 0 to remove it. try changing the 0 to a small number like .2
                     and the 1 to the complement of that number (1 - .2 = .8) to see how color blending works.*/
-                    v_color = 
-                        ( 0.0 * color ) + 
+                    v_color =
+                        ( 0.0 * color ) +
                         ( 1.0 * (
                             ambient_color +
                             color_from_sun +
@@ -170,7 +159,7 @@
                 }
             `;
 
-            const GOURAUD_FRAGMENT_SHADER = 
+            const GOURAUD_FRAGMENT_SHADER =
             `   #version 300 es
                 precision mediump float;
 
@@ -182,16 +171,16 @@
                 uniform sampler2D tex_0;
 
                 void main( void ) {
-                    f_color = v_color * texture( tex_0, v_uv ); 
+                    f_color = v_color * texture( tex_0, v_uv );
 
                     /* we can test depth values with this.
                     f_color = vec4(vec3(gl_FragCoord.z), 1.0); */
                 }
             `;
 
-            let lit_program = 
-                create_compile_and_link_program( 
-                    gl, 
+            let lit_program =
+                create_compile_and_link_program(
+                    gl,
                     /*PHONG_VERTEX_SHADER,*/ GOURAUD_VERTEX_SHADER,
                     /*PHONG_FRAGMENT_SHADER,*/ GOURAUD_FRAGMENT_SHADER
                 );
@@ -213,26 +202,18 @@
 
             let keys = Keys.start_listening();
             let cam = new Camera();
-            cam.translate( 0, 0, -4.5 );
+            cam.translate( 0, 0, -10 );
 
-            
-            let metal = 
-                new LitMaterial( gl, 'tex/metal.png', gl.LINEAR, 0.25, 1, 2, 5 );
-            let grass = 
-                new LitMaterial( gl, 
-                'tex/grass_lawn_seamless.png', gl.LINEAR, 0.2, 0.8, 0.05, 1.0 );
-            let scale = 
-                new LitMaterial( gl, 'tex/metal_scale.png', gl.LINEAR, 0.25, 1, 2, 4 );
 
-            let sun_dir = ( new Vec4( 1.0, 0.0, 0.0, 0.0 ) ).norm();
-            let sun = new Light( sun_dir.x, sun_dir.y, sun_dir.z, 1.0, 0.95, 0.85, 0 );
-            let light1 = new Light( -9, -9, 0.0, 1.0, 0.2, 0.2, 1 );
+            let grass = new LitMaterial( gl, 'tex/grass_lawn_seamless.png', gl.LINEAR, 0.2, 0.8, 0.05, 1.0 );
+            let oak = new LitMaterial( gl, 'tex/oak_planks.png', gl.LINEAR, 0.25, 1, 2, 4 );
+            let rail = new LitMaterial( gl, 'tex/stone_rail.png', gl.LINEAR, 0.25, 1, 2, 4 );
 
             // base floor
             let floorMesh = NormalMesh.box(gl, lit_program, 1, 1, 1, grass);
 
-            let mesh1_data = NormalMesh.uv_sphere( gl, lit_program, 1, 16, scale );
-            let mesh2_data = NormalMesh.box( gl, lit_program, 1, 1, 1, scale );
+            let mesh1_data = NormalMesh.uv_sphere( gl, lit_program, 1, 16, oak );
+            let mesh2_data = NormalMesh.box( gl, lit_program, 1, 1, 1, oak );
 
             let sceneRoot = new Node();
 
@@ -242,7 +223,7 @@
             floorNode.scale.z = 50;
             floorNode.position.y = -0.53;
 
-            let sphereNode = sceneRoot.add_child(mesh1_data);
+            /*let sphereNode = sceneRoot.add_child(mesh1_data);
             sphereNode.position.x = -1.5;
             sphereNode.position.y = 1.0;
 
@@ -254,13 +235,26 @@
             moonNode.scale.x = 0.5;
             moonNode.scale.y = 0.5;
             moonNode.scale.z = 0.5;
-            moonNode.position.x = -2.0; 
-            //moonNode.position.y = 1.0;
+            moonNode.position.x = -2.0;
+            //moonNode.position.y = 1.0;*/
 
-            let newboxNode = add_box(sceneRoot, 4, 0, 0, 1, 1, 1, scale);
-            let newerboxNode = add_box(sceneRoot, 4, 1, 0, 1, 1, 1, scale);
-            let newestboxNode = add_box(sceneRoot, 5, 1, 0, 1, 1, 1, scale);
+            // WORLDBUILDING
+            // House box
+            for (let x = 4; x <= 10; x++) {
+                for (let y = 0; y <= 3; y++) {
+                    for (let z = 3; z <= 8; z++) {
+                        if ((x === 9 && y < 2 && z === 3) || ((z !== 3 && z !== 8) && (x !== 4 && x !== 10) && y !== 3))
+                            continue;
+                        add_box(sceneRoot, x, y, z, 1, 1, 1, oak);
+                    }
+                }
+            }
 
+            // Rails
+            for (let z = 0; z <= 10; z++)
+                add_box(sceneRoot, -1, -1, z, 1, 1, 1, rail);
+            add_box(sceneRoot, -1, 0, -1, 1, 1, 1, oak);
+            add_box(sceneRoot, -1, 0, 11, 1, 1, 1, oak);
 
             let projection = Mat4.perspective_fovx( 0.125, 4 / 3, 0.125, 1024 );
             let current_program = lit_program;
@@ -282,6 +276,10 @@
                 set_uniform_vec3( gl, current_program, 'viewer_loc', cam.x, cam.y, cam.z );
 
                 // ADD LIGHTS
+                let sun_dir = ( new Vec4( -1.0, 0.0, 0.0, 0.0 ) ).norm();
+                let sun = new Light( sun_dir.x, sun_dir.y, sun_dir.z, 1.0, 0.95, 0.85, 0 );
+                let light1 = new Light( -9, -9, 0.0, 1.0, 0.2, 0.2, 1 );
+
                 sun.bind( gl, current_program, view );
                 light1.bind( gl, current_program, view );
 
@@ -298,18 +296,19 @@
             }
 
             const KEYMAP = {
-                'KeyW': function() { cam.move_in_direction( 0, 0, FLY_SPEED_PER_FRAME ); },
-                'KeyS': function() { cam.move_in_direction( 0, 0, -FLY_SPEED_PER_FRAME ); },
-                'KeyA': function() { cam.move_in_direction( -FLY_SPEED_PER_FRAME, 0, 0 ); },
-                'KeyD': function() { cam.move_in_direction( FLY_SPEED_PER_FRAME, 0, 0 ); },
-                'Space': function() { cam.translate( 0, FLY_SPEED_PER_FRAME, 0 ); },
-                'KeyC': function() { cam.translate( 0, -FLY_SPEED_PER_FRAME, 0 ); },
+                'KeyW': function() { cam.move_in_direction( 0, 0, FLY_SPEED_PER_FRAME * 4 ); },
+                'KeyS': function() { cam.move_in_direction( 0, 0, -FLY_SPEED_PER_FRAME * 4 ); },
+                'KeyA': function() { cam.move_in_direction( -FLY_SPEED_PER_FRAME * 4, 0, 0 ); },
+                'KeyD': function() { cam.move_in_direction( FLY_SPEED_PER_FRAME * 4, 0, 0 ); },
+                'Space': function() { cam.translate( 0, FLY_SPEED_PER_FRAME * 4, 0 ); },
+                'KeyC': function() { cam.translate( 0, -FLY_SPEED_PER_FRAME * 4, 0 ); },
+                'ShiftLeft': function() { cam.translate( 0, -FLY_SPEED_PER_FRAME * 4, 0 ); },
                 'KeyQ': function() { cam.add_roll( -ROTATION_SPEED_PER_FRAME ); },
                 'KeyE': function() { cam.add_roll( ROTATION_SPEED_PER_FRAME ); },
-                'ArrowLeft': function() { cam.add_yaw( -ROTATION_SPEED_PER_FRAME ); },
-                'ArrowRight': function() { cam.add_yaw( ROTATION_SPEED_PER_FRAME ); },
-                'ArrowUp': function() { cam.add_pitch( -ROTATION_SPEED_PER_FRAME ); },
-                'ArrowDown': function() { cam.add_pitch( ROTATION_SPEED_PER_FRAME ); },
+                'ArrowLeft': function() { cam.add_yaw( -ROTATION_SPEED_PER_FRAME * 3 ); },
+                'ArrowRight': function() { cam.add_yaw( ROTATION_SPEED_PER_FRAME * 3 ); },
+                'ArrowUp': function() { cam.add_pitch( ROTATION_SPEED_PER_FRAME ); },
+                'ArrowDown': function() { cam.add_pitch( -ROTATION_SPEED_PER_FRAME ); },
             };
 
             let moonOrbitAngle = 0;
@@ -341,7 +340,7 @@
 
                 return;
             }
-            
+
             requestAnimationFrame( render );
             setInterval( update, DESIRED_MSPT );
         </script>
