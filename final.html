@@ -40,6 +40,8 @@
                 const mesh = NormalMesh.cylinder(gl, lit_program, radius, width, 32, material, axis);
                 const node = parent.add_child(mesh);
 
+                node.isWheel = true;
+
                 node.scale.x = 0.1;
                 node.scale.y = 0.1;
                 node.scale.z = 0.1;
@@ -299,10 +301,10 @@
             frontCartWallNode.scale.z = CART_WALL_THICKNESS;
             frontCartWallNode.position.z = CART_WALL_LENGTH/2;
 
-            add_wheel(cartRoot, (CART_WALL_WIDTH/2) + (CART_WALL_THICKNESS/2), -0.4,  (CART_WALL_LENGTH/2) - (CART_WALL_THICKNESS*4), 1, 0.25, metal, "x");   //fr
-            add_wheel(cartRoot, (-CART_WALL_WIDTH/2) - (CART_WALL_THICKNESS/2), -0.4,  (CART_WALL_LENGTH/2) - (CART_WALL_THICKNESS*4), 1, 0.25, metal, "x");   //fl
-            add_wheel(cartRoot, (CART_WALL_WIDTH/2) + (CART_WALL_THICKNESS/2), -0.4, (-CART_WALL_LENGTH/2) + (CART_WALL_THICKNESS*4), 1, 0.25, metal, "x");   //br
-            add_wheel(cartRoot, (-CART_WALL_WIDTH/2) - (CART_WALL_THICKNESS/2), -0.4, (-CART_WALL_LENGTH/2) + (CART_WALL_THICKNESS*4), 1, 0.25, metal, "x");   //bl
+            add_wheel(cartRoot, (CART_WALL_WIDTH/2) + (CART_WALL_THICKNESS/2), -0.4,  (CART_WALL_LENGTH/2) - (CART_WALL_THICKNESS*4), 1, 0.25, rail, "x");   //fr
+            add_wheel(cartRoot, (-CART_WALL_WIDTH/2) - (CART_WALL_THICKNESS/2), -0.4,  (CART_WALL_LENGTH/2) - (CART_WALL_THICKNESS*4), 1, 0.25, rail, "x");   //fl
+            add_wheel(cartRoot, (CART_WALL_WIDTH/2) + (CART_WALL_THICKNESS/2), -0.4, (-CART_WALL_LENGTH/2) + (CART_WALL_THICKNESS*4), 1, 0.25, rail, "x");   //br
+            add_wheel(cartRoot, (-CART_WALL_WIDTH/2) - (CART_WALL_THICKNESS/2), -0.4, (-CART_WALL_LENGTH/2) + (CART_WALL_THICKNESS*4), 1, 0.25, rail, "x");   //bl
 
             let projection = Mat4.perspective_fovx( 0.125, 4 / 3, 0.125, 1024 );
             let current_program = lit_program;
@@ -365,9 +367,10 @@
                 'ArrowDown': function() { cam.add_pitch( -ROTATION_SPEED_PER_FRAME ); },
             };
 
-            let cartSpeed = 0.01;
+            let cartSpeed = 0.1;
+            let cartForward = true;
             const cartMinZ = 0.1;
-            const cartMaxZ = 10.9;
+            const cartMaxZ = 9.9;
 
             function update() {
                 let keys_down = keys.keys_down_list();
@@ -380,7 +383,28 @@
                    }
                 }
 
-                
+                cartRoot.position.z += cartSpeed;
+
+                // Make sure the direction flips when we reach an end
+                if (cartRoot.position.z > cartMaxZ) {
+                    cartRoot.position.z = cartMaxZ;
+                    cartSpeed *= -1;
+                    cartForward = false;
+                }
+                if (cartRoot.position.z < cartMinZ) {
+                    cartRoot.position.z = cartMinZ;
+                    cartSpeed *= -1;
+                    cartForward = true;
+                }
+
+                // Spin the wheels
+                for (let wheel of cartRoot.children) {
+                    if (wheel.isWheel) {
+                        if (cartForward) { wheel.pitch -= 0.05; }
+                        else if (!cartForward) { wheel.pitch += 0.05; }
+                    }
+                }
+
 
                 return;
             }
